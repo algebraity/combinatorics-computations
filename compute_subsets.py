@@ -3,15 +3,17 @@ from ookami import *
 import json
 import time
 import os
+import csv
 import multiprocessing as mp
-import numpy as np
 from fractions import Fraction
 
-os.makedirs("data", exist_ok=True)
-
+FLUSH_EVERY = 16000
 JOBS = mp.cpu_count()
-N = 25
+N = 28
 k = 10*JOBS
+
+OUT_DIR = "/mnt/combinatorics/powerset_set_info/set_info_" + str(N)
+os.makedirs(OUT_DIR, exist_ok=True)
 
 HEADER = ["set", "add_ds", "diff_ds", "mult_ds", "cardinality", "diameter", "density", "dc",
           "is_ap", "is_gp", "add_energy", "mult_energy"
@@ -47,16 +49,26 @@ def compute_row(subset: tuple[int, ...]):
 
 def _worker(chunk_id: int):
     total = 1 << N
-    rows = [HEADER]
+    path = os.path.join(OUT_DIR, f"set_info_{N}_{chunk_id:04d}.csv")
 
-    start = chunk_id if chunk_id != 0 else k
-    for mask in range(start, total, k):
-        subset = mask_to_subset(mask, N)
-        rows.append(compute_row(subset))
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(HEADER)
 
-    filename = f"set_info_{N}_{chunk_id:04d}.csv"
-    path = os.path.join("data", filename)
-    np.savetxt(path, rows, delimiter=",", fmt="%s")
+        buf = []
+        start = chunk_id if chunk_id != 0 else k
+        for mask in range(start, total, k):
+            subset = mask_to_subset(mask, N)
+            buf.append(compute_row(subset))
+
+            if len(buf) >= FLUSH_EVERY:
+                w.writerows(buf)
+                buf.clear()
+
+        if buf:
+            w.writerows(buf)
+            buf.clear()
+
     return path
 
 def main():
