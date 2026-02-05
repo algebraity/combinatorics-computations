@@ -6,8 +6,9 @@ from scipy.optimize import curve_fit
 from pathlib import Path
 
 # Get available CSV files
-data_dir = Path("data")
-csv_files = sorted([f.name for f in data_dir.glob("*.csv")])
+data_dir1 = Path("data/every_1")
+data_dir2 = Path("data/every_25")
+csv_files = sorted([f.name for f in data_dir1.glob("*.csv")] + [f.name for f in data_dir2.glob("*.csv")])
 
 if not csv_files:
     print("No CSV files found in data/ directory")
