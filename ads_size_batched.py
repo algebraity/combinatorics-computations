@@ -100,7 +100,7 @@ def _worker(ns: list[int]) -> list[list[int]]:
     return out
 
 
-def compute_ads(n: int, out_dir: str = "data", k: int = 40, jobs: int | None = None, mp_context: str | None = None):
+def compute_ads(n: int, out_dir: str = "data", k: int = 40, jobs: int | None = None, mp_context: str | None = "fork"):
     os.makedirs(out_dir, exist_ok=True)
     jobs = jobs or os.cpu_count() or 1
 
