@@ -6,10 +6,8 @@ from scipy.optimize import curve_fit
 from pathlib import Path
 
 # Get available CSV files
-data_dir1 = Path("data/every_1")
-data_dir2 = Path("data/every_25")
-csv_files = sorted([f.name for f in data_dir1.glob("*.csv")] + [f.name for f in data_dir2.glob("*.csv")])
-
+data_dir = Path("data/every_25")
+csv_files = sorted([f.name for f in data_dir.glob("*.csv")])
 if not csv_files:
     print("No CSV files found in data/ directory")
     exit(1)
@@ -22,6 +20,7 @@ for i, file in enumerate(csv_files, 1):
 # Get user choice
 choice = int(input(f"\nChoose a file (1-{len(csv_files)}): ")) - 1
 selected_file = data_dir / csv_files[choice]
+plot_name = input("Enter plot name: ")
 
 # Read CSV data
 n_vals = []
@@ -38,8 +37,8 @@ y_vals = [0.5 - d for d in delta_vals]
 
 # Omit first 5 values (outliers)
 # (keep slicing as-is; adjust index if needed)
-n_vals = n_vals[100:]
-y_vals = y_vals[100:]
+n_vals = n_vals
+y_vals = y_vals
 
 # Ensure numpy arrays for fitting
 n_arr = np.array(n_vals, dtype=float)
@@ -75,7 +74,7 @@ if fit_y is not None:
 
 plt.xlabel('n')
 plt.ylabel('0.5 - delta')
-plt.title(f'Plot from {csv_files[choice]}')
+plt.title(plot_name)
 plt.axhline(y=0.5, color='g', linestyle='--', linewidth=2, label='y = 1/2')
 plt.legend(loc='best', fontsize=10)
 plt.grid(True, alpha=0.3)

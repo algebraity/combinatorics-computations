@@ -29,8 +29,7 @@ static inline void mpz_or_range(mpz_t dst, unsigned lo, unsigned hi,
     mpz_ior(dst, dst, tmp_interval);
 }
 
-/* Hash mpz by mixing its limbs.
-   This is not cryptographic; it is for hash-table distribution. */
+/* Hash mpz by mixing its limbs. */
 static inline uint64_t mix64(uint64_t x) {
     x += 0x9e3779b97f4a7c15ULL;
     x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
