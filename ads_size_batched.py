@@ -3,10 +3,11 @@ import csv
 import time
 import random as rand
 import multiprocessing as mp
+from fractions import Fraction
 from typing import Any, List, Tuple, Union
 
 HEADER = [
-    "n", "|A|", "|A+A|"
+    "n", "|A|", "|A+A|", "delta", "dup_density"
 ]
 
 def A_ads_size(n: int) -> tuple[int, int]:
@@ -91,12 +92,14 @@ def A_ads_size(n: int) -> tuple[int, int]:
     AA_size = sum(mask.bit_count() for mask in u_to_mask.values())
     return A_size, AA_size
 
-
 def _worker(ns: list[int]) -> list[list[int]]:
     out = []
     for i in ns:
         A_size, AA_size = A_ads_size(i)
-        out.append([i, A_size, AA_size])
+        P = (A_size * (A_size + 1) // 2)
+        dup_density = Fraction(P - AA_size, P)
+        delta = 0.5 - AA_size / (A_size**2)
+        out.append([i, A_size, AA_size, delta, float(dup_density)])
     return out
 
 
