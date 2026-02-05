@@ -48,7 +48,7 @@ def _worker(ns: list[int]) -> list[list[int]]:
     return out
 
 
-def compute_ads(n: int, out_dir: str = "data", k: int = 40, jobs: int | None = None, mp_context: str | None = "fork"):
+def compute_ads(s:int, n: int, i: int, out_dir: str = "data", k: int = 40, jobs: int | None = None, mp_context: str | None = "fork"):
     os.makedirs(out_dir, exist_ok=True)
     jobs = jobs or os.cpu_count() or 1
 
@@ -57,7 +57,7 @@ def compute_ads(n: int, out_dir: str = "data", k: int = 40, jobs: int | None = N
     ctx = mp.get_context(mp_context) if mp_context else mp.get_context()
 
     # Generate values: only every 5th value from 5 to n
-    values = list(range(5, n + 1, 5))
+    values = list(range(s+i, n + 1, i))
     # Distribute values evenly across k chunks
     chunks = [values[i * len(values) // k : (i + 1) * len(values) // k] for i in range(k)]
     # Remove empty chunks
