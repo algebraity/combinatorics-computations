@@ -3,6 +3,7 @@ import csv
 import time
 import random as rand
 import multiprocessing as mp
+import subprocess
 from fractions import Fraction
 from typing import Any, List, Tuple, Union
 
@@ -12,85 +13,29 @@ HEADER = [
 
 def A_ads_size(n: int) -> tuple[int, int]:
     """
-    A_n = { i*2^j : 1<=i<=n, 1<=j<=n }.
-
-    Returns (|A_n|, |A_n + A_n|) exactly using a dyadic (odd-part/exponent) method:
-      - represent sums as u*2^t with u odd
-      - store achievable exponents t per odd u as a bitmask
-
-    Complexity is about O((#odds)^2 * n) = O(n^3) / 4, which is usually far faster
-    than enumerating all |A|^2 sums in Python for moderate n.
+    Calls the C program ./ads_size to compute A_n and A_n + A_n.
+    Returns (|A_n|, |A_n + A_n|) by parsing the output.
     """
-
-    odds = list(range(1, n + 1, 2))
-    # L[m] = floor(log2(n//m))  (max r such that m*2^r <= n)
-    L = {}
-    Emax = {}  # Emax[m] = max exponent e for elements m*2^e that appear in A_n
-    for m in odds:
-        q = n // m
-        lm = q.bit_length() - 1  # since q>=1
-        L[m] = lm
-        Emax[m] = n + lm
-
-    # |A| = sum over odd m of number of exponents e in [1..Emax[m]]
-    A_size = sum(Emax[m] for m in odds)
-
-    # helper: v2(x) for positive int x (number of trailing zeros in base-2)
-    def v2(x: int) -> int:
-        return (x & -x).bit_length() - 1
-
-    # map odd u -> bitmask of achievable exponents t
-    # bit t is 1 <=> u*2^t is in A+A
-    u_to_mask: dict[int, int] = {}
-
-    # maximum d we ever need to consider (if Emax[m2]-d >= 1)
-    # crude safe bound:
-    d_max = max(Emax.values()) - 1
-
-    for a in odds:
-        Ea = Emax[a]
-        La = L[a]
-        for b in odds:
-            Eb = Emax[b]
-            Lb = L[b]
-
-            # For each d>=0: need e1 in [1..Ea] and e2=e1+d in [1..Eb]
-            # so e1 <= Eb - d
-            # Let E1max(d) = min(Ea, Eb - d). If <1, skip.
-            # Also K = a + (b<<d) changes with d.
-
-            # We can stop once Eb - d < 1
-            # i.e. d > Eb-1
-            max_d_here = Eb - 1
-            if max_d_here < 0:
-                continue
-            # Iterate d from 0..max_d_here
-            # (This is the main cost; still typically much cheaper than |A|^2.)
-            for d in range(0, max_d_here + 1):
-                E1max = Ea
-                limit = Eb - d
-                if limit < E1max:
-                    E1max = limit
-                if E1max < 1:
-                    break
-
-                K = a + (b << d)
-                tz = v2(K)
-                u = K >> tz  # odd part
-
-                # t runs from (1 + tz) up to (E1max + tz), inclusive
-                t_lo = 1 + tz
-                t_hi = E1max + tz
-
-                # set bits t_lo..t_hi in the mask
-                interval_mask = ((1 << (t_hi + 1)) - 1) ^ ((1 << t_lo) - 1)
-
-                prev = u_to_mask.get(u, 0)
-                u_to_mask[u] = prev | interval_mask
-
-    # popcount of Python int
-    AA_size = sum(mask.bit_count() for mask in u_to_mask.values())
-    return A_size, AA_size
+    try:
+        result = subprocess.run(
+            ["./ads_size", str(n)],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        # Parse the final line: "n, |A|, |A+A|"
+        output_lines = result.stdout.strip().split('\n')
+        for line in output_lines:
+            if line.startswith(str(n) + ","):
+                parts = line.split(",")
+                A_size = int(parts[1].strip())
+                AA_size = int(parts[2].strip())
+                return A_size, AA_size
+        raise RuntimeError(f"Could not parse output for n={n}")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"C program failed for n={n}: {e.stderr}")
+    except FileNotFoundError:
+        raise RuntimeError("./ads_size not found. Please compile the C program first: gcc -o ads_size ads_size.c -lgmp")
 
 def _worker(ns: list[int]) -> list[list[int]]:
     out = []
@@ -98,7 +43,7 @@ def _worker(ns: list[int]) -> list[list[int]]:
         A_size, AA_size = A_ads_size(i)
         P = (A_size * (A_size + 1) // 2)
         dup_density = Fraction(P - AA_size, P)
-        delta = 0.5 - AA_size / (A_size**2)
+        delta = float(Fraction(1, 2) - Fraction(AA_size, A_size * A_size))
         out.append([i, A_size, AA_size, delta, float(dup_density)])
     return out
 

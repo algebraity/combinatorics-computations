@@ -36,26 +36,31 @@ with open(selected_file, 'r') as f:
 y_vals = [0.5 - d for d in delta_vals]
 
 # Omit first 5 values (outliers)
-n_vals = n_vals[150:]
-y_vals = y_vals[150:]
+# (keep slicing as-is; adjust index if needed)
+n_vals = n_vals[100:]
+y_vals = y_vals[100:]
 
-# Define the model: y = 0.5 - C*n^(-a) - D*n^(-(a+1))
-def model(n, C, a, D):
-    n_arr = np.array(n)
-    return 0.5 - C * n_arr ** (-a) - D * n_arr ** (-(a + 1))
+# Ensure numpy arrays for fitting
+n_arr = np.array(n_vals, dtype=float)
+y_arr = np.array(y_vals, dtype=float)
+
+# Define the model: y = 0.5 - C * n^(-a)
+def model(n, C, a):
+    n = np.array(n, dtype=float)
+    return 0.5 - C * n ** (-a)
 
 # Fit the curve using curve_fit
 try:
-    popt, _ = curve_fit(model, n_vals, y_vals, p0=[1.0, 0.5, 0.1], maxfev=5000)
-    C_fit, a_fit, D_fit = popt
-    fit_y = model(n_vals, C_fit, a_fit, D_fit)
-    
+    popt, _ = curve_fit(model, n_arr, y_arr, p0=[1.0, 0.5], maxfev=10000)
+    C_fit, a_fit = popt
+    fit_y = model(n_arr, C_fit, a_fit)
+
     # Calculate R²
-    ss_res = np.sum((y_vals - fit_y) ** 2)
-    ss_tot = np.sum((y_vals - np.mean(y_vals)) ** 2)
-    r2 = 1 - (ss_res / ss_tot)
-    
-    fit_label = f'Best-fit: y = 0.5 - {C_fit:.6f}·n^(-{a_fit:.6f}) - {D_fit:.6f}·n^(-{a_fit+1:.6f}), R² = {r2:.6f}'
+    ss_res = np.sum((y_arr - fit_y) ** 2)
+    ss_tot = np.sum((y_arr - np.mean(y_arr)) ** 2)
+    r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else float('nan')
+
+    fit_label = f'Best-fit: y = 0.5 - {C_fit:.6f}·n^(-{a_fit:.6f}), R² = {r2:.6f}'
 except Exception as e:
     print(f"Fitting error: {e}")
     fit_y = None
