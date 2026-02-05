@@ -56,7 +56,12 @@ def compute_ads(n: int, out_dir: str = "data", k: int = 40, jobs: int | None = N
 
     ctx = mp.get_context(mp_context) if mp_context else mp.get_context()
 
-    chunks = [list(range(i * n // k + 1, (i + 1) * n // k + 1)) for i in range(k)]
+    # Generate values: only every 5th value from 5 to n
+    values = list(range(5, n + 1, 5))
+    # Distribute values evenly across k chunks
+    chunks = [values[i * len(values) // k : (i + 1) * len(values) // k] for i in range(k)]
+    # Remove empty chunks
+    chunks = [c for c in chunks if c]
 
     all_rows: list[list[int]] = []
 
@@ -65,7 +70,7 @@ def compute_ads(n: int, out_dir: str = "data", k: int = 40, jobs: int | None = N
         for chunk_rows in pool.imap_unordered(_worker, chunks, chunksize=1):
             all_rows.extend(chunk_rows)
             done += 1
-            print(f"{(100*done)//k}% done, {time.time()-t0:.1f}s since start")
+            print(f"{(100*done)//len(chunks)}% done, {time.time()-t0:.1f}s since start")
 
     all_rows.sort(key=lambda r: r[0])  # sort by n
 
