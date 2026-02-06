@@ -17,7 +17,7 @@ def ads_algorithm(n):
         return A_size, AA_size
 
 
-for n in range(201, 501):
+for n in range(10, 501, 20):
     A1, AA1 = ads_algorithm(n)
 
     s = set([i * (2**j) for i in range(1, n+1) for j in range(1, n+1)])
